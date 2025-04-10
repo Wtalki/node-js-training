@@ -1,0 +1,3 @@
+hello stream world
+this is line 2
+final line end

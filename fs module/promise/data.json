@@ -1,0 +1,10 @@
+{
+  "name": "Ko Aung",
+  "age": 26,
+  "skills": [
+    "Node.js",
+    "Vue.js",
+    "PostgreSQL",
+    "Redis"
+  ]
+}
