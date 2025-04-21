@@ -1,0 +1,1 @@
+import (add,sub) from '1_lesson.js'
