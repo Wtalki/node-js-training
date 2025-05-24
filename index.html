@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Phaser 3 Slot 5×6 – Any-Line Winning Logic</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+  <style>
+    body{margin:0;background:#222;color:#fff;font-family:sans-serif;text-align:center}
+    canvas{display:block;margin:0 auto}
+  </style>
+</head>
+<body>
+<h1>🎰 Slot Machine 5 × 6 – Any-Line Wins</h1>
+
+<script>
+/* ───────────── CONSTANTS ───────────── */
+const ROWS=5, COLS=6, SIZE=100, TOP=50;
+const SYMBOLS=['🍒','🍋','🔔','💎','7️⃣'];
+const FX={
+  mega:{scale:1.7,tint:0xffd700,repeat:6,dur:180},
+  big :{scale:1.45,tint:0x00e5ff,repeat:4,dur:220},
+  win :{scale:1.25,tint:0xffffff,repeat:2,dur:260}
+};
+/* ───────────── GAME BOOT ───────────── */
+const game=new Phaser.Game({
+  type:Phaser.AUTO,width:960,height:650,backgroundColor:'#2d2d2d',
+  scene:{preload,create,update}
+});
+
+/* ───────────── GLOBALS ───────────── */
+let reels=[], state=[], spinning=false, msg;
+
+/* build all straight-line coordinate arrays */
+function generateLines(){
+  const lines=[];
+  /* rows */
+  for(let r=0;r<ROWS;r++)  lines.push(Array.from({length:COLS},(_,c)=>[c,r]));
+  /* columns */
+  for(let c=0;c<COLS;c++)  lines.push(Array.from({length:ROWS},(_,r)=>[c,r]));
+  /* diagonals ↘ */
+  for(let s=0;s<=COLS+ROWS-2;s++){         // start index by manhattan distance
+    const line=[];
+    for(let c=0;c<COLS;c++){
+      const r=s-c;
+      if(r>=0&&r<ROWS) line.push([c,r]);
+    }
+    if(line.length>=3) lines.push(line);
+  }
+  /* diagonals ↗ */
+  for(let s=-ROWS+1;s<COLS;s++){
+    const line=[];
+    for(let c=0;c<COLS;c++){
+      const r=ROWS-1-(s+c);
+      if(r>=0&&r<ROWS) line.push([c,r]);
+    }
+    if(line.length>=3) lines.push(line);
+  }
+  return lines;
+}
+const ALL_LINES=generateLines();
+
+/* ───────────── SCENE ───────────── */
+function preload(){}
+function create(){
+  /* symbol grid */
+  for(let c=0;c<COLS;c++){
+    reels[c]=[];
+    state[c]={spin:false,stop:0};
+    for(let r=0;r<ROWS;r++){
+      const t=this.add.text(150+c*SIZE, TOP+r*SIZE,
+        Phaser.Utils.Array.GetRandom(SYMBOLS),
+        {fontSize:'64px'}).setOrigin(0.5);
+      reels[c][r]=t;
+    }
+  }
+  /* spin button */
+  this.add.text(480,600,'SPIN',{fontSize:'32px',fill:'#fff'}).setOrigin(0.5)
+      .setInteractive().on('pointerdown',()=>{
+        if(!spinning){spinning=true;startSpin.call(this);}
+      });
+  msg=this.add.text(480,20,'',{fontSize:'28px',fill:'#fff'}).setOrigin(0.5);
+}
+
+/* ───────────── SPIN FLOW ───────────── */
+function startSpin(){
+  const now=this.time.now;
+  for(let c=0;c<COLS;c++){state[c].spin=true;state[c].stop=now+2000+c*400;}
+  msg.setText('');
+  reels.flat().forEach(s=>s.setScale(1).clearTint());
+}
+function update(time){
+  for(let c=0;c<COLS;c++){
+    const st=state[c];
+    if(st.spin){
+      reels[c].forEach(sym=>{
+        sym.y+=15;
+        if(sym.y>TOP+(ROWS-1)*SIZE){
+          sym.y=TOP;
+          sym.setText(Phaser.Utils.Array.GetRandom(SYMBOLS));
+        }
+      });
+      if(time>=st.stop){
+        st.spin=false;
+        reels[c].forEach((sym,r)=>{sym.y=TOP+r*SIZE;
+          sym.setText(Phaser.Utils.Array.GetRandom(SYMBOLS));});
+      }
+    }
+  }
+  if(spinning && state.every(s=>!s.spin)){
+    spinning=false; evaluateLines.call(this);
+  }
+}
+
+/* ───────────── WIN-SCAN ───────────── */
+function scanLine(line){
+  /* return {tier , targets[]} for best run within this line */
+  let bestLen=1, bestStart=0, run=1, start=0;
+  for(let i=1;i<line.length;i++){
+    const [c1,r1]=line[i], [c0,r0]=line[i-1];
+    if(reels[c1][r1].text===reels[c0][r0].text){run++;}else{run=1;start=i;}
+    if(run>bestLen){bestLen=run;bestStart=start-run+1;}
+  }
+  const tier= bestLen===6?'mega':bestLen===5?'big':bestLen>=3?'win':'none';
+  if(tier==='none') return {tier:'none',targets:[]};
+  const coords=line.slice(bestStart,bestStart+bestLen);
+  const targets=coords.map(([c,r])=>reels[c][r]);
+  return {tier,targets};
+}
+function tierRank(t){return t==='mega'?3:t==='big'?2:t==='win'?1:0;}
+function evaluateLines(){
+  let bestTier='none', winners=[];
+  for(const line of ALL_LINES){
+    const {tier,targets}=scanLine(line);
+    if(tierRank(tier)>tierRank(bestTier)){bestTier=tier;winners=targets;}
+    else if(tier!== 'none' && tier===bestTier) winners=winners.concat(targets);
+  }
+  const text={mega:'💥 MEGA WIN!',big:'✨ BIG WIN!',win:'🎉 Win!','none':'🙁 No win'};
+  msg.setText(text[bestTier]);
+  animateTargets.call(this,bestTier,winners);
+}
+
+/* ───────────── FX ───────────── */
+function animateTargets(level,targets){
+  if(level==='none'||!targets.length) return;
+  const {scale,tint,repeat,dur}=FX[level];
+  this.tweens.add({
+    targets,scale,duration:dur,yoyo:true,repeat,
+    ease:'Quad.easeInOut',
+    onStart:()=>targets.forEach(t=>t.setTint(tint)),
+    onComplete:()=>targets.forEach(t=>{t.clearTint();t.setScale(1);})
+  });
+}
+</script>
+</body>
+</html>
