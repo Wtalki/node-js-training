@@ -58,4 +58,13 @@ The file is created automatically in the current working directory on first use.
 - No external libraries are used.
 - Commands accept positional arguments. On Windows PowerShell, wrap descriptions in quotes.
 
+### How it works
+
+See the detailed explanation in `docs/task-cli-explained.md` for:
+
+- Data model and storage in `tasks.json`
+- Helper functions used by the CLI
+- Command parsing and each command's flow
+- Error handling and how to extend the tool
+
 

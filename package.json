@@ -1,25 +1,18 @@
 {
-  "name": "task-tracker-cli",
+  "name": "node-training",
   "version": "1.0.0",
   "private": true,
   "description": "Simple CLI to track tasks (todo/in-progress/done) in a JSON file.",
+  "type": "module",
+  "main": "index.js",
   "bin": {
     "task-cli": "./task-cli.js"
   },
-  "license": "MIT",
-  "engines": {
-    "node": ">=14"
-  }
-}
-
-{
-  "name": "node-training",
-  "version": "1.0.0",
-  "description": "",
   "license": "ISC",
   "author": "",
-  "type": "commonjs",
-  "main": "index.js",
+  "engines": {
+    "node": ">=14"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
