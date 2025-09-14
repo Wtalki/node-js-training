@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Methods Explained — Node.js CLI Projects</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; line-height: 1.6; }
+    h1 { margin: 0 0 16px; }
+    h2 { margin: 24px 0 8px; }
+    .card { border: 1px solid #e5e7eb; padding: 16px; border-radius: 8px; margin: 16px 0; }
+    code, pre { background: #f8fafc; padding: 2px 4px; border-radius: 4px; }
+    pre { padding: 12px; overflow-x: auto; border: 1px solid #e5e7eb; }
+    .note { color: #555; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Methods Explained — Node.js CLI Projects</h1>
+  <p class="note">ဤစာမျက်နှာတွင် Expense Tracker နှင့် GitHub Activity CLI တွင် သုံးထားသည့် method/function များကို မြန်မာလို တစ်ခုပြီးတစ်ခုရှင်းပြထားပါတယ်။</p>
+
+  <div class="card">
+    <h2>process.argv</h2>
+    <p><strong>Why</strong>: CLI ကနေ user ထည့်သွင်းတဲ့ command နဲ့ flags ကို ရယူရန်။<br/>
+       <strong>How</strong>: Node က program path, script path, args စာရင်းကို array အဖြစ်ပေးတယ်။ <code>slice(2)</code> နဲ့ user args ကိုပဲ ယူတယ်။</p>
+    <pre><code>const args = process.argv.slice(2); // ['add','--description','Lunch','--amount','20']</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>process.cwd()</h2>
+    <p><strong>Why</strong>: Data file ကို run လုပ်နေတဲ့ working directory အပေါ် မူတည်ချင်လို့။<br/>
+       <strong>How</strong>: လက်ရှိ working directory ကို absolute path အဖြစ် ပြန်ပေးတယ်။</p>
+    <pre><code>const cwd = process.cwd(); // e.g., C:\Users\user\node-js-training</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>path.resolve()</h2>
+    <p><strong>Why</strong>: OS အလိုက် path ပေါင်းစပ်မှားမှု မဖြစ်အောင် absolute path တည်ဆောက်ရန်။<br/>
+       <strong>How</strong>: segments တွေကို resolve လုပ်ပြီး <code>.</code>/<code>..</code> ကို normalize ပြုလုပ်တာ၊ absolute မတွေ့ရင် <code>process.cwd()</code> ကို အခြေခံတယ်။</p>
+    <pre><code>import path from 'path';
+const file = path.resolve(process.cwd(), 'expenses.json');</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>fs.existsSync / fs.readFileSync / fs.writeFileSync</h2>
+    <p><strong>Why</strong>: အလွယ်တကူ synchronous နည်းလမ်းနဲ့ ဖိုင် စစ်/ဖတ်/ရေး လုပ်ရန် (CLI လေးများအတွက် ရိုးရိုးပဲ လိုတယ်)။<br/>
+       <strong>How</strong>: မရှိရင် <code>[]</code> နဲ့ ဖန်တီး၊ ဖတ်ရာတွင် UTF-8, ရေးရာတွင် <code>JSON.stringify(..., 2)</code> သုံးပေးတယ်။</p>
+    <pre><code>import fs from 'fs';
+if (!fs.existsSync(file)) fs.writeFileSync(file, '[]', 'utf8');
+const text = fs.readFileSync(file, 'utf8');
+fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');</code></pre>
+    <p class="note">Browser မှာ မရပါ — Node.js-only API ဖြစ်တယ်။</p>
+  </div>
+
+  <div class="card">
+    <h2>JSON.parse / JSON.stringify</h2>
+    <p><strong>Why</strong>: Data ကို JSON text ↔ JS object/array ပြောင်းရန်။<br/>
+       <strong>How</strong>: <code>JSON.parse</code> သည် error ပစ်နိုင်လို့ try/catch သုံး၊ <code>JSON.stringify(value, null, 2)</code> သည် human-readable ဖြစ်စေတယ်။</p>
+    <pre><code>const arr = JSON.parse('[{"id":1,"amount":20}]');
+const text = JSON.stringify(arr, null, 2);</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Array Methods</h2>
+    <p><strong>Why</strong>: List ကို CRUD လုပ်ရန်၊ totals တွက်ရန်။<br/>
+       <strong>How</strong>: <code>findIndex</code> (ရှာ index), <code>push</code> (ထည့်), <code>splice</code> (ဖျက်), <code>reduce</code> (စုစုပေါင်း), <code>filter</code> (စစ်), <code>slice</code> (copy အစိတ်အပိုင်း)။</p>
+    <pre><code>const i = arr.findIndex(e => e.id === id);
+arr.push(newItem);
+arr.splice(i, 1);
+const total = arr.reduce((s,e)=>s+Number(e.amount||0), 0);
+const monthList = arr.filter(e => String(e.date).startsWith('2025-09'));
+const first30 = arr.slice(0, 30);</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Number & String Methods</h2>
+    <p><strong>Why</strong>: Validation (id/amount/month) နှင့် output formatting အတွက်။<br/>
+       <strong>How</strong>: <code>Number()</code>, <code>Number.isFinite</code>, <code>Number.isInteger</code>, <code>toFixed(2)</code>, <code>trim</code>, <code>padEnd</code>, <code>startsWith</code>။</p>
+    <pre><code>const amount = Number('12.5');
+Number.isFinite(amount) && amount > 0;
+Number.isInteger(Number('3'));
+amount.toFixed(2); // '12.50'
+'Lunch'.trim();
+'Lunch'.padEnd(25, ' ');
+'2025-09-12'.startsWith('2025-09');</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Date Formatting (YYYY-MM-DD)</h2>
+    <p><strong>Why</strong>: Monthly summary အတွက် filter လွယ်ကူစေခြင်း။<br/>
+       <strong>How</strong>: Year/Month/Day ကို zero-pad နှင့် template literal နဲ့ ပေါင်းတယ်။</p>
+    <pre><code>function todayIsoDate(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Optional chaining (?.) / Nullish coalescing (??)</h2>
+    <p><strong>Why</strong>: External data (e.g., GitHub API) မှာ field မရှိနိုင်တာကြောင့် crash မဖြစ်စေဖို့။<br/>
+       <strong>How</strong>: <code>a?.b?.c</code> က safe access, <code>x ?? fallback</code> က null/undefined ဖြစ်မှ fallback သတ်မှတ်တယ်။</p>
+    <pre><code>const repo = ev?.repo?.name ?? '(unknown repo)';</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Template Literals</h2>
+    <p><strong>Why</strong>: Dynamic messages ကို ရှင်းလင်းစွာ သရုပ်ဖော်ရန်။<br/>
+       <strong>How</strong>: backticks (`) နဲ့ <code>${expr}</code> interpolation သုံးတယ်။</p>
+    <pre><code>console.log(`Expense added successfully (ID: ${id})`);</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>encodeURIComponent (for URLs)</h2>
+    <p><strong>Why</strong>: GitHub API path ထဲ ထည့်မယ့် username ကို URL-safe လုပ်ရန်။<br/>
+       <strong>How</strong>: unsafe chars ကို percent-encode လုပ်တယ်။</p>
+    <pre><code>const path = `/users/${encodeURIComponent(username)}/events`;</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>https (Node.js)</h2>
+    <p><strong>Why</strong>: External APIs (GitHub) ကို library မသုံးဘဲ built-in နဲ့ခေါ်ရန်။<br/>
+       <strong>How</strong>: <code>https.request(options, cb)</code> → collect chunks → <code>JSON.parse</code> → handle status codes (403/404...)။</p>
+    <pre><code>import https from 'https';
+const req = https.request({ hostname:'api.github.com', path:'/users/octocat/events', method:'GET', headers:{'User-Agent':'cli'} }, res => {
+  let data='';
+  res.on('data', c => data += c);
+  res.on('end', () => { const json = JSON.parse(data || '[]'); console.log(json.length); });
+});
+req.end();</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>process.exit / process.exitCode</h2>
+    <p><strong>Why</strong>: Error ဖြစ်တဲ့အခါ exit status ကို မှန်ကန်စွာ ပေးရန်၊ သို့မဟုတ် ချက်ချင်းပိတ်ရန်။<br/>
+       <strong>How</strong>: <code>exitCode</code> သတ်မှတ်ရုံက graceful; <code>exit()</code> က immediate (async အချို့ မပြီးနိုင်)။</p>
+    <pre><code>process.exitCode = 1; // graceful error exit
+// process.exit(1);   // immediate exit</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Example Outputs</h2>
+    <h3>Expense Tracker</h3>
+    <pre><code>$ expense-tracker add --description "Lunch" --amount 20
+Expense added successfully (ID: 1)
+
+$ expense-tracker add --description "Dinner" --amount 10
+Expense added successfully (ID: 2)
+
+$ expense-tracker list
+# ID  Date        Description                Amount
+# 1   2025-09-12  Lunch                     $20.00
+# 2   2025-09-12  Dinner                    $10.00
+
+$ expense-tracker summary
+# Total expenses: $30.00
+
+$ expense-tracker delete --id 2
+Expense deleted successfully
+
+$ expense-tracker summary --month 9
+# Total expenses for September: $20.00</code></pre>
+
+    <h3>GitHub Activity</h3>
+    <pre><code>$ github-activity octocat
+- Pushed 2 commits to octocat/Hello-World
+- Opened a pull request in octocat/Spoon-Knife
+- Starred octocat/Spoon-Knife
+...
+
+$ github-activity not-a-real-user-xyz
+Error: Not Found
+    </code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Line-by-line Example Outputs</h2>
+    <h3>Expense Tracker — list</h3>
+    <pre><code>1| # ID  Date        Description                Amount
+2| # 1   2025-09-12  Lunch                     $20.00
+3| # 2   2025-09-12  Dinner                    $10.00</code></pre>
+    <ul>
+      <li><strong>Line 1</strong>: Header row with aligned columns.</li>
+      <li><strong>Line 2..n</strong>: Each expense entry (ID, ISO date, description padded, amount with 2 decimals).</li>
+    </ul>
+
+    <h3>Expense Tracker — summary (month)</h3>
+    <pre><code>1| # Total expenses for September: $20.00</code></pre>
+    <ul>
+      <li><strong>Line 1</strong>: Monthly total computed with filter + reduce.</li>
+    </ul>
+
+    <h3>GitHub Activity</h3>
+    <pre><code>1| - Pushed 2 commits to octocat/Hello-World
+2| - Opened a pull request in octocat/Spoon-Knife
+3| - Starred octocat/Spoon-Knife</code></pre>
+    <ul>
+      <li><strong>Line 1..n</strong>: Each event formatted from the GitHub API payload.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Testing Log (Transcript)</h2>
+    <h3>Expense Tracker</h3>
+    <pre><code>PS C:\Users\user\node-js-training> node expense-tracker.js add --description "Lunch" --amount 20
+Expense added successfully (ID: 1)
+
+PS C:\Users\user\node-js-training> node expense-tracker.js add --description "Dinner" --amount 10
+Expense added successfully (ID: 2)
+
+PS C:\Users\user\node-js-training> node expense-tracker.js list
+# ID  Date        Description                Amount
+# 1   2025-09-12  Lunch                     $20.00
+# 2   2025-09-12  Dinner                    $10.00
+
+PS C:\Users\user\node-js-training> node expense-tracker.js summary
+# Total expenses: $30.00
+
+PS C:\Users\user\node-js-training> node expense-tracker.js delete --id 2
+Expense deleted successfully
+
+PS C:\Users\user\node-js-training> node expense-tracker.js summary --month 9
+# Total expenses for September: $20.00
+
+PS C:\Users\user\node-js-training> $LASTEXITCODE
+0</code></pre>
+
+    <h3>GitHub Activity</h3>
+    <pre><code>PS C:\Users\user\node-js-training> node github-activity.js octocat
+- Pushed 2 commits to octocat/Hello-World
+- Opened a pull request in octocat/Spoon-Knife
+- Starred octocat/Spoon-Knife
+
+PS C:\Users\user\node-js-training> node github-activity.js not-a-real-user-xyz
+Error: Not Found
+
+PS C:\Users\user\node-js-training> $LASTEXITCODE
+404
+
+# Optional: avoid rate limits
+PS C:\Users\user\node-js-training> $env:GITHUB_TOKEN = "&lt;token&gt;"
+PS C:\Users\user\node-js-training> node github-activity.js octocat
+- ... events listed ...
+PS C:\Users\user\node-js-training> $LASTEXITCODE
+0</code></pre>
+  </div>
+
+  <p class="note">ပိုမိုအသေးစိတ် (step-by-step/interactive demos) များအတွက် <code>expense-tracker-methods.html</code> ကိုလည်းကြည့်ရှုနိုင်ပါတယ်။</p>
+</body>
+</html>
+
+

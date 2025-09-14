@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense Tracker Methods — How They Work</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; line-height: 1.5; }
+    h1 { margin: 0 0 16px; }
+    h2 { margin: 24px 0 8px; }
+    code, pre { background: #f8fafc; padding: 2px 4px; border-radius: 4px; }
+    pre { padding: 12px; overflow-x: auto; border: 1px solid #e5e7eb; }
+    .note { color: #555; font-size: 13px; }
+    .card { border: 1px solid #e5e7eb; padding: 16px; border-radius: 8px; margin: 16px 0; }
+  </style>
+</head>
+<body>
+  <h1>Expense Tracker မှာ သုံးထားတဲ့ Method/Function တွေရဲ့ အလုပ်လုပ်ပုံ</h1>
+  <p class="note">နောက်ပါတိုင်း <strong>ဘာကြောင့် သုံးရသလဲ</strong> (Why) နဲ့ <strong>ဘယ်လို အလုပ်လုပ်သလဲ</strong> (How) ကို ခွဲပြထားပါတယ်။</p>
+
+  <div class="card">
+    <h2>Overview</h2>
+    <p>CLI app တစ်ခုအနေနဲ့ <code>expenses.json</code> ထဲ data သိမ်းထားပြီး add / update / delete / list / summary ကို တိုက်ရိုက် terminal မှာ လုပ်ဆောင်နိုင်ပါတယ်။ Node.js built-in APIs တွေကိုသာ သုံးထားပြီး logic ရိုးရိုး၊ အလွယ်တကူ တိုးတက်အောင် ဆောက်ထားပါတယ်။</p>
+  </div>
+
+  <div class="card">
+    <h2>Install / Run</h2>
+    <pre><code>cd C:\\Users\\user\\node-js-training
+npm link
+expense-tracker add --description "Lunch" --amount 20
+expense-tracker list
+expense-tracker summary --month 9
+</code></pre>
+    <p class="note">မလိုလားပါက <code>node expense-tracker.js ...</code> လည်း တန်းအသုံးပြုနိုင်ပါတယ်။</p>
+  </div>
+
+  <div class="card">
+    <h2>Command Reference</h2>
+    <ul>
+      <li><strong>add</strong>: <code>--description</code> (required), <code>--amount</code> (required, &gt; 0)</li>
+      <li><strong>update</strong>: <code>--id</code> (required), <code>--description</code> (opt), <code>--amount</code> (opt, &gt; 0)</li>
+      <li><strong>delete</strong>: <code>--id</code> (required)</li>
+      <li><strong>list</strong>: all expenses</li>
+      <li><strong>summary</strong>: overall or <code>--month N</code> (1–12)</li>
+    </ul>
+    <pre><code># Examples
+expense-tracker add --description "Dinner" --amount 10
+expense-tracker update --id 1 --amount 25.5
+expense-tracker delete --id 2
+expense-tracker list
+expense-tracker summary
+expense-tracker summary --month 9
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Data Format (expenses.json)</h2>
+    <pre><code>[
+  { "id": 1, "date": "2025-09-12", "description": "Lunch", "amount": 20.00 },
+  { "id": 2, "date": "2025-09-12", "description": "Dinner", "amount": 10.00 }
+]
+</code></pre>
+    <p>date သည် <code>YYYY-MM-DD</code>, amount သည် number (2 decimals formatted) ဖြစ်ပါသည်။</p>
+  </div>
+
+  <div class="card">
+    <h2>Validation</h2>
+    <ul>
+      <li>description: non-empty string</li>
+      <li>amount: finite number, &gt; 0</li>
+      <li>id: integer</li>
+      <li>month: integer in [1, 12]</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Errors & Exit Codes</h2>
+    <ul>
+      <li>Invalid inputs → message + <code>process.exit(1)</code></li>
+      <li>Read/parse error → message + <code>process.exitCode = 1</code> (graceful)</li>
+      <li>Not found (id) → message + <code>process.exit(1)</code></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Function Responsibilities</h2>
+    <ul>
+      <li><strong>printUsage</strong>: usage help</li>
+      <li><strong>ensureStore</strong>: create file if missing</li>
+      <li><strong>readExpenses</strong>: read + parse JSON</li>
+      <li><strong>writeExpenses</strong>: write JSON</li>
+      <li><strong>generateNextId</strong>: max id + 1</li>
+      <li><strong>parseArgs</strong>: '--key value' → Map</li>
+      <li><strong>todayIsoDate</strong>: 'YYYY-MM-DD'</li>
+      <li><strong>addExpense</strong>: validate → read → create → write</li>
+      <li><strong>updateExpense</strong>: validate → read → find → mutate → write</li>
+      <li><strong>deleteExpense</strong>: validate → read → find → splice → write</li>
+      <li><strong>listExpenses</strong>: read → print header + rows</li>
+      <li><strong>summary</strong>: read → filter (if month) → reduce total → print</li>
+      <li><strong>main</strong>: command dispatch</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>process.argv (Node.js)</h2>
+    <p><strong>Why</strong>: CLI command မှာ user ထည့်သွင်းတဲ့ command/flags တွေကို ယူဖို့။</p>
+    <p><strong>How</strong>: Node.js က arguments ကို array အဖြစ်ပေးတယ် (program path, script path, ...args)。 <code>slice(2)</code> နဲ့ user args ကိုပဲ လိုက်ယူတယ်။</p>
+    <pre><code>// node expense-tracker.js add --description "Lunch" --amount 12.5
+const args = process.argv.slice(2); // ['add','--description','Lunch','--amount','12.5']
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>process.cwd()</h2>
+    <p><strong>Why</strong>: Data file ကို project run လုပ်တဲ့နေရာ (working dir) အပေါ်မူတည် ရှာဖို့။
+    <br/><strong>How</strong>: Node.js process ရဲ့ current working directory ကို absolute path အဖြစ် ပြန်ပေးတယ်။</p>
+    <pre><code>// CLI (Node.js) ထဲက ဥပမာ
+const cwd = process.cwd();
+// e.g., C:\\Users\\user\\node-js-training
+</code></pre>
+    <p class="note">UI demo မှာ browser sandbox ဖြစ်လို့ <code>process.cwd()</code> ကို မရနိုင်ပါ — Node.js-only ဖြစ်တယ်။</p>
+  </div>
+
+  <div class="card">
+    <h2>encodeURIComponent</h2>
+    <p><strong>Why</strong>: URL ထဲ သွားမည့် username က space/@ စတာတွေ ပါနိုင်လို့ encode လုပ်ရန်။
+    <br/><strong>How</strong>: RFC-compatible percent-encoding နဲ့ unsafe characters များကို encode လုပ်တယ်။</p>
+    <pre><code>encodeURIComponent('john doe'); // 'john%20doe'
+// GitHub API: `/users/${encodeURIComponent(username)}/events`
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>path.resolve()</h2>
+    <p><strong>Why</strong>: OS အလိုက် relative/absolute path ပေါင်းစပ် ပျက်ကွက်မှု မဖြစ်အောင် absolute path လုပ်ရန်။
+    <br/><strong>How</strong>: ညာဘက်မှ ဘယ်ဘက်သို့ segment တွေကို resolve လုပ်ပြီး <code>.</code>, <code>..</code> တွေ normalize လုပ်ပေးတယ်။ absolute မတွေ့ရင် <code>process.cwd()</code> ကို အခြေခံတယ်။</p>
+    <pre><code>import path from 'path';
+const file = path.resolve(process.cwd(), 'expenses.json');
+// C:\\Users\\user\\node-js-training\\expenses.json</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>fs.existsSync / fs.readFileSync / fs.writeFileSync</h2>
+    <p><strong>Why</strong>: လွယ်ကူပြီး deterministic CLI ကို ရရှိဖို့ (small data) synchronous ops သုံးတယ်။
+    <br/><strong>How</strong>: existsSync သောဖိုင်ရှိ/မရှိစစ် → မရှိရင် writeFileSync('[]') ဖြင့် ဖန်တီး → readFileSync နဲ့ ဖတ်/ writeFileSync နဲ့ ရေး (overwrite)။</p>
+    <pre><code>import fs from 'fs';
+// မရှိရင် ဖန်တီး
+if (!fs.existsSync(file)) fs.writeFileSync(file, '[]', 'utf8');
+// ဖတ်
+const content = fs.readFileSync(file, 'utf8');
+// ရေး
+fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+</code></pre>
+    <p class="note">Browser မှာ ဒီ API မရ — demo အတွက် localStorage သုံးနိုင်ပေမယ့် CLI logic နဲ့ မတူပါ။</p>
+  </div>
+
+  <div class="card">
+    <h2>JSON.parse / JSON.stringify</h2>
+    <p><strong>Why</strong>: Data ကို ဖိုင်ထဲ JSON အဖြစ် သိမ်း/ဖတ် နိုင်ရန်။
+    <br/><strong>How</strong>: <code>JSON.parse</code> နဲ့ string → array/object ပြောင်း၊ <code>JSON.stringify(value, null, 2)</code> နဲ့ human-readable JSON ပြန်ရေး။</p>
+    <pre><code>const arr = JSON.parse('[{"id":1,"amount":20}]'); // [{ id:1, amount:20 }]
+const text = JSON.stringify(arr, null, 2); // human-readable JSON</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Array.isArray / findIndex / push / splice / reduce / filter</h2>
+    <p><strong>Why</strong>: Expenses list ကို CRUD လုပ်ဖို့အတွက် အခြေခံ array ops တွေရယ်၊ summary တွက်ဖို့ reduce/filter လိုအပ်တယ်။
+    <br/><strong>How</strong>: Array.isArray နဲ့ parse result စစ်၊ findIndex/splice နဲ့ delete, push နဲ့ add, reduce/filter နဲ့ totals/month filter တွက်။</p>
+    <pre><code>const expenses = [{ id:1, amount:20 }, { id:2, amount:10 }];
+Array.isArray(expenses);            // true
+expenses.findIndex(e => e.id === 2) // 1
+expenses.push({ id:3, amount:5 });  // add
+expenses.splice(1, 1);              // remove index 1
+const total = expenses.reduce((s, e) => s + e.amount, 0); // sum
+const august = expenses.filter(e => String(e.date).startsWith('2025-08'));
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Array.slice</h2>
+    <p><strong>Why</strong>: Output count ကို ကန့်သတ်ချင်တဲ့အခါ (e.g., GitHub activity 30 ခုသာပြ) မူရင်း array မပြင်ဘဲ copy ယူရန်။
+    <br/><strong>How</strong>: <code>slice(start, end)</code> က immutable copy ပြန်ပေးတယ်။</p>
+    <pre><code>const events = [1,2,3,4,5];
+events.slice(0, 3); // [1,2,3]
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Number / Number.isFinite / Number.isInteger / toFixed</h2>
+    <p><strong>Why</strong>: Amount/ID/Month တို့အတွက် မမှန်ကန်သည့် input ကို ထိန်းချုပ်ရန်။
+    <br/><strong>How</strong>: Number() ပြောင်းပြီး isFinite/isInteger စစ်၊ amount ကို toFixed(2) နဲ့ စံပြ format ပြုလုပ်။</p>
+    <pre><code>const amt = Number('12.5');
+Number.isFinite(amt) && amt > 0; // amount valid?
+const id = Number('3');
+Number.isInteger(id);            // id valid?
+(12.5).toFixed(2);               // "12.50"
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>String: trim / padEnd / startsWith</h2>
+    <p><strong>Why</strong>: CLI output neat ဖြစ်အောင် align/pad လုပ်ရန်၊ month filter လိုဂျစ်ကို string-starts နဲ့ လွယ်ကူစွာ စစ်ရန်।
+    <br/><strong>How</strong>: trim လုပ်ပြီး input စင်မုန်းအောင်လုပ်၊ padEnd နဲ့ columns align, startsWith နဲ့ 'YYYY-MM' filtering.</p>
+    <pre><code>'  Lunch  '.trim();                // 'Lunch'
+'Lunch'.padEnd(25, ' ');          // 'Lunch                   '
+'2025-09-12'.startsWith('2025-09') // true (September)
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Date formatting (YYYY-MM-DD)</h2>
+    <pre><code>function todayIsoDate(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const d = String(now.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Optional chaining (?.) / Nullish coalescing (??)</h2>
+    <p><strong>Why</strong>: External data (GitHub events) မှာ field မရှိနိုင်ခြေရှိ → crash မဖြစ်စေရန်။
+    <br/><strong>How</strong>: <code>obj?.a?.b</code> က safe access လုပ်၊ <code>x ?? '(fallback)'</code> က null/undefined ဖြစ်မှသာ fallback သတ်မှတ်တယ်။</p>
+    <pre><code>const ev = { repo: { name: 'owner/repo' } };
+const repo = ev?.repo?.name ?? '(unknown repo)';
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Template literals</h2>
+    <p><strong>Why</strong>: Messages/output ကို ဖတ်ရလွယ်ကူအောင် dynamic values ထည့်ရန်။
+    <br/><strong>How</strong>: backticks နဲ့ `${expr}` ထည့်၍ readable strings တည်ဆောက်။</p>
+    <pre><code>const id = 3; const total = 30;
+`Expense added successfully (ID: ${id})`;
+`# Total expenses: $${total.toFixed(2)}`;
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Intl.NumberFormat (advanced formatting)</h2>
+    <p><strong>Why</strong>: Currency display ကို locale-aware အောင် ပြချင်တဲ့အခါ။
+    <br/><strong>How</strong>: Intl API သုံးပြီး currency style နဲ့ format ပြုလုပ်တယ်။</p>
+    <pre><code>const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+fmt.format(12.5); // "$12.50"
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>process.exit / process.exitCode</h2>
+    <p><strong>Why</strong>: Error ဖြစ်တဲ့အခါ တင်ပြပြီး အဆင်ပြေစွာ သို့မဟုတ် ချက်ချင်း ပြီးစီးချင်တဲ့ flow များကို ထိန်းချုပ်ရန်။
+    <br/><strong>How</strong>: <code>process.exitCode = 1</code> က graceful exit; <code>process.exit(1)</code> က immediate exit (async များ အပိတ်ဖြတ်နိုင်)။</p>
+    <pre><code>try { /* ... */ }
+catch (err) {
+  console.error(err.message);
+  process.exitCode = 1; // graceful
+  // or process.exit(1); // immediate
+}
+</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>Interactive (Browser-only) Demos</h2>
+    <p>အောက်ကတို့ဟာ CLI logic နဲ့ တူညီတဲ့ concept demo တွေပါ — browser မှာပဲ လုပ်လုပ်ပါမယ်။</p>
+
+    <h3>JSON.parse demo</h3>
+    <pre><code id="jsonOutput">(Enter text below and click Parse)</code></pre>
+    <textarea id="jsonInput" rows="5" style="width:100%">[{"id":1,"amount":20}]</textarea>
+    <button id="btnParse">Parse</button>
+
+    <h3 style="margin-top:16px">Array.reduce sum demo</h3>
+    <pre><code id="sumOutput">Click to sum: [{ amount: 10 }, { amount: 20 }]</code></pre>
+    <button id="btnSum">Sum</button>
+
+    <h3 style="margin-top:16px">Flag Parser (parseArgs) demo</h3>
+    <pre><code id="flagOut">Input: --description Lunch --amount 12.5</code></pre>
+    <input id="flagIn" style="width:100%" value="--description Lunch --amount 12.5" />
+    <button id="flagBtn">Parse</button>
+  </div>
+
+  <div class="card">
+    <h2>Step-by-step: Command Flows (Internal)</h2>
+    <h3>1) add --description "Lunch" --amount 20</h3>
+    <ol>
+      <li><code>process.argv.slice(2)</code> → <code>['add','--description','Lunch','--amount','20']</code></li>
+      <li><strong>parseArgs</strong> → Map: { description: 'Lunch', amount: '20' }</li>
+      <li><strong>Validation</strong> → description.trim() မဗလာ, Number(amount) > 0</li>
+      <li><strong>readExpenses</strong> → ensureStore → existsSync? မရှိရင် writeFileSync('[]') → readFileSync + JSON.parse</li>
+      <li><strong>generateNextId</strong> → maxId + 1</li>
+      <li><strong>push</strong> new expense: { id, date: YYYY-MM-DD, description, amount: toFixed(2) }</li>
+      <li><strong>writeExpenses</strong> → writeFileSync(JSON.stringify(..., 2))</li>
+      <li><strong>console.log</strong> success; exit (code 0)</li>
+    </ol>
+
+    <h3>2) update --id 3 --description "Brunch" --amount 9.99</h3>
+    <ol>
+      <li>parseArgs → { id: '3', description: 'Brunch', amount: '9.99' }</li>
+      <li>Validation → Number.isInteger(id) true; optional fields valid (amount > 0)</li>
+      <li>readExpenses → array</li>
+      <li>findIndex(id) → -1? error + process.exit(1)</li>
+      <li>mutate fields (if provided) → amount toFixed(2)</li>
+      <li>writeExpenses → success log</li>
+    </ol>
+
+    <h3>3) delete --id 2</h3>
+    <ol>
+      <li>parseArgs → { id: '2' }</li>
+      <li>Validation → id integer</li>
+      <li>readExpenses → array</li>
+      <li>findIndex → splice(idx,1) or error</li>
+      <li>writeExpenses → success log</li>
+    </ol>
+
+    <h3>4) list</h3>
+    <ol>
+      <li>readExpenses → array</li>
+      <li>empty? → "No expenses found."</li>
+      <li>print header → rows with padEnd + toFixed(2)</li>
+    </ol>
+
+    <h3>5) summary [--month N]</h3>
+    <ol>
+      <li>readExpenses → array</li>
+      <li>if month provided → validate 1..12 → filter by <code>YYYY-MM</code></li>
+      <li>reduce to total → print "Total ...: $xx.xx"</li>
+    </ol>
+  </div>
+
+  <script>
+    document.getElementById('btnParse').addEventListener('click', () => {
+      const input = document.getElementById('jsonInput').value;
+      const out = document.getElementById('jsonOutput');
+      try {
+        const v = JSON.parse(input);
+        out.textContent = 'Parsed OK: ' + JSON.stringify(v);
+      } catch (e) {
+        out.textContent = 'Parse Error: ' + e.message;
+      }
+    });
+
+    document.getElementById('btnSum').addEventListener('click', () => {
+      const list = [{ amount: 10 }, { amount: 20 }];
+      const total = list.reduce((s, e) => s + Number(e.amount || 0), 0);
+      document.getElementById('sumOutput').textContent = 'Total = ' + total;
+    });
+
+    // Simple flag parser demo: '--key value' → object
+    document.getElementById('flagBtn').addEventListener('click', () => {
+      const src = document.getElementById('flagIn').value.trim();
+      const tokens = src.split(/\s+/);
+      const map = new Map();
+      for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i];
+        if (t.startsWith('--')) {
+          const key = t.slice(2);
+          const next = tokens[i + 1];
+          if (next && !next.startsWith('--')) { map.set(key, next); i++; }
+          else { map.set(key, true); }
+        }
+      }
+      const obj = Object.fromEntries(map);
+      document.getElementById('flagOut').textContent = 'Parsed → ' + JSON.stringify(obj);
+    });
+  </script>
+</body>
+</html>
+
+

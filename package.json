@@ -6,7 +6,13 @@
   "type": "module",
   "main": "index.js",
   "bin": {
-    "task-cli": "./task-cli.js"
+    "task-cli": "./task-cli.js",
+    "github-activity": "./github-activity.js",
+    "expense-tracker": "./expense-tracker.js",
+    "number-guess": "./number-guess/index.js",
+    "tmdb-app": "./tmdb-cli.js",
+    "caching-proxy": "./caching-proxy.js",
+    "broadcast-server": "./broadcast-server/index.js"
   },
   "license": "ISC",
   "author": "",
@@ -14,15 +20,40 @@
     "node": ">=14"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "number-guess": "node number-guess/index.js",
+    "unit-converter": "node unit-converter/index.js",
+    "blog": "node blog/index.js",
+    "weather": "node weather/index.js",
+    "blog-api": "node blog-api/index.js",
+    "todo-api": "node todo-api/index.js",
+    "expense-api": "node expense-api/index.js",
+    "shortener-api": "node shortener-api/index.js",
+    "ecom-api": "node ecom-api/index.js",
+    "workout-api": "node workout-api/index.js",
+    "image-api": "node image-api/index.js",
+    "notes-api": "node notes-api/index.js",
+    "tmdb": "node tmdb-cli.js",
+    "caching-proxy": "node caching-proxy.js",
+    "broadcast-server": "node broadcast-server/index.js"
   },
   "dependencies": {
+    "better-sqlite3": "^11.10.0",
     "dotenv": "^16.5.0",
+    "express": "^4.21.2",
     "fs": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
+    "marked": "^12.0.2",
     "minimatch": "^10.0.1",
+    "multer": "^1.4.5-lts.1",
+    "nedb-promises": "^6.2.3",
     "node-cron": "^4.0.7",
     "puppeteer": "^24.9.0",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "redis": "^4.7.1",
+    "sharp": "^0.33.5",
+    "stripe": "^16.12.0",
+    "ws": "^8.18.3"
   }
 }
